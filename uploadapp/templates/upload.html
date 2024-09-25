@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Image</title>
+    <style>
+        /* Styling for the container */
+        .upload-container {
+            width: 50%;
+            margin: 0 auto;
+            margin-top: 100px;
+            border: 2px dashed #ccc;
+            padding: 20px;
+            background-color: #f9f9f9;
+            position: relative;
+        }
+
+        .drag-text {
+            font-size: 18px;
+            color: #333;
+            display: inline-block;
+        }
+
+        /* Style for the blue upload button */
+        .upload-button {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            float: right;
+            margin-top: 2px;
+        }
+
+        .upload-button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Loading bar styling */
+        .loading-bar {
+            margin-top: 20px;
+            width: 100%;
+            height: 5px;
+            background-color: #f1f1f1;
+            display: none;
+        }
+
+        .loading-bar .progress {
+            height: 100%;
+            width: 0;
+            background-color: #007BFF;
+            transition: width 2s ease;
+        }
+
+        /* Image preview area layout */
+        .preview-container {
+            margin-top: 20px;
+        }
+
+        /* Left side (Uploaded image) */
+        .uploaded-image {
+            margin-bottom: 20px;
+        }
+
+        .uploaded-image img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            padding: 5px;
+            border-radius: 5px;
+        }
+
+        /* Right side (Image preview) */
+        .image-preview {
+            margin-top: 20px;
+        }
+
+        .image-preview img {
+            max-width: 50%;
+            height: auto;
+            border: 1px solid #ddd;
+            padding: 5px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="upload-container" id="upload-container">
+    <form id="upload-form" method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="drag-text">
+            <p>Drag and drop an image here</p>
+        </div>
+        <button type="button" class="upload-button" id="upload-btn">Upload Image</button>
+        <input type="file" id="file-input" name="image" accept="image/*" style="display:none;">
+    </form>
+
+    <!-- Loading bar -->
+    <div class="loading-bar" id="loading-bar">
+        <div class="progress"></div>
+    </div>
+</div>
+
+<div class="preview-container">
+    <!-- Uploaded image (Left side) -->
+    <div class="uploaded-image" id="uploaded-image">
+        <h3>Uploaded Image</h3>
+        <img id="last-uploaded-img" src="#" alt="Uploaded Image" style="display:none;">
+    </div>
+
+    <!-- Image preview (Right side) -->
+    <div class="image-preview" id="image-preview">
+        <!-- All selected images will be added here -->
+    </div>
+</div>
+
+<script>
+    const uploadContainer = document.getElementById('upload-container');
+    const fileInput = document.getElementById('file-input');
+    const form = document.getElementById('upload-form');
+    const uploadBtn = document.getElementById('upload-btn');
+    const loadingBar = document.getElementById('loading-bar');
+    const progressBar = document.querySelector('.progress');
+    const imagePreview = document.getElementById('image-preview');
+    const uploadedImage = document.getElementById('last-uploaded-img');
+
+    // Clicking the container will trigger the file input
+    uploadContainer.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    // Drag and drop behavior
+    uploadContainer.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadContainer.style.backgroundColor = '#f1f1f1';
+    });
+
+    uploadContainer.addEventListener('dragleave', () => {
+        uploadContainer.style.backgroundColor = '#f9f9f9';
+    });
+
+    uploadContainer.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadContainer.style.backgroundColor = '#f9f9f9';
+        fileInput.files = e.dataTransfer.files;  // Assign dropped file
+        showNewImagePreview(fileInput.files[0]); // Show new image preview
+        showLoadingBar(); // Show the loading bar on file drop
+    });
+
+    // When a file is selected, show the loading bar and image preview
+    fileInput.addEventListener('change', () => {
+        showNewImagePreview(fileInput.files[0]); // Show new image preview
+        showLoadingBar(); // Show the loading bar
+    });
+
+    // When the upload button is clicked, submit after the progress bar is completed
+    uploadBtn.addEventListener('click', () => {
+        if (fileInput.files.length === 0) {
+            alert("Please select a file first");
+        } else {
+            showLoadingBar();
+        }
+    });
+
+    // Function to show and animate the loading bar
+    function showLoadingBar() {
+        loadingBar.style.display = 'block'; // Show the loading bar
+        progressBar.style.width = '0%'; // Reset the progress bar
+
+        // Animate the loading bar
+        setTimeout(() => {
+            progressBar.style.width = '100%'; // Fill the progress bar
+        }, 100);
+
+        // Hide the loading bar after the animation completes
+        setTimeout(() => {
+            loadingBar.style.display = 'none'; // Hide the loading bar
+        }, 2000); // Adjust this timing based on your loading animation duration
+    }
+
+    // Function to show the uploaded image (below the title)
+    function showUploaded(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            uploadedImage.src = e.target.result; // Set the new image as uploaded image
+            uploadedImage.style.display = 'block'; // Ensure it's visible
+        }
+        reader.readAsDataURL(file); // Read the image as Data URL
+    }
+
+    // Function to display the new image preview (below the uploaded image)
+    function showNewImagePreview(file) {
+        // Create an image element for preview
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Create an image element for preview
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.alt = "Image Preview";
+            imagePreview.appendChild(img); // Append the image to the preview section
+        }
+        reader.readAsDataURL(file); // Read the image as Data URL
+    }
+</script>
+
+</body>
+</html>
